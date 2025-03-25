@@ -5,7 +5,7 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, fenix, ... }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
@@ -48,10 +48,6 @@
           doCheck = false;
 
           nativeBuildInputs = commonBuildInputs;
-
-          # buildInputs = commonBuildInputs;
-
-          HOME = pkgs.lib.cleanSource ./.;
 
           buildPhase = ''
             cargo leptos build --release
