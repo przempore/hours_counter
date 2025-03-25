@@ -1,3 +1,8 @@
+// pub mod components;
+pub mod models;
+pub mod pages;
+
+pub use pages::calendars::Calendar;
 pub mod app;
 
 #[cfg(feature = "hydrate")]

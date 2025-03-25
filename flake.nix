@@ -33,6 +33,7 @@
             
             # Additional development tools
             sass
+            dart-sass
             pkg-config
             openssl
             nodePackages.npm
