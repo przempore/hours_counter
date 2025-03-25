@@ -14,6 +14,29 @@
         };
         rustVersion = pkgs.rust-bin.nightly.latest.default;
 
+        commonBuildInputs = with pkgs; [
+            # Rust toolchain with wasm target
+            (rustVersion.override {
+              targets = [ "wasm32-unknown-unknown" ];
+              extensions = [ "rust-src" "rust-analyzer" ];
+            })
+            
+            binaryen
+            # WASM tools
+            wasm-bindgen-cli
+            
+            # Leptos specific tools
+            leptosfmt
+            cargo-leptos
+            cargo-generate
+            
+            # Additional development tools
+            dart-sass
+            pkg-config
+            openssl
+            nodePackages.npm
+          ];
+
         app = pkgs.rustPlatform.buildRustPackage {
           pname = "hours_counter";
           version = "0.1.0";
@@ -24,44 +47,14 @@
 
           doCheck = false;
 
-          nativeBuildInputs = with pkgs; [
-            (rustVersion.override {
-              targets = [ "wasm32-unknown-unknown" ];
-              extensions = [ "rust-src" "rust-analyzer" ];
-            })
+          nativeBuildInputs = commonBuildInputs;
 
-            binaryen
-            wasm-pack
-            # WASM tools
-            wasm-bindgen-cli
-            
-            # Leptos specific tools
-            leptosfmt
-            cargo-leptos
-            cargo-generate
-            
-            # Additional development tools
-            # sass
-            dart-sass
-            pkg-config
-            openssl
-            nodePackages.npm
-          ];
-
-          buildInputs = with pkgs; [
-            openssl
-          ];
+          # buildInputs = commonBuildInputs;
 
           HOME = pkgs.lib.cleanSource ./.;
 
           buildPhase = ''
             cargo leptos build --release
-            # cargo build --release --target=wasm32-unknown-unknown
-            #
-            # find target
-
-            # export CARGO_HOME=$(pwd)/.cargo
-            # cargo leptos build --release
           '';
 
           installPhase = ''
@@ -79,29 +72,7 @@
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # Rust toolchain with wasm target
-            (rustVersion.override {
-              targets = [ "wasm32-unknown-unknown" ];
-              extensions = [ "rust-src" "rust-analyzer" ];
-            })
-            
-            binaryen
-            # WASM tools
-            wasm-bindgen-cli
-            
-            # Leptos specific tools
-            leptosfmt
-            cargo-leptos
-            cargo-generate
-            
-            # Additional development tools
-            # sass
-            dart-sass
-            pkg-config
-            openssl
-            nodePackages.npm
-          ];
+          buildInputs = commonBuildInputs;
 
           shellHook = ''
             echo "Rust development environment loaded"
