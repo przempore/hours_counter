@@ -113,29 +113,34 @@ pub fn Calendar() -> impl IntoView {
                         let current_date = create_datetime(current_year, current_month, day);
                         let weekday = current_date.weekday();
                         let is_weekend = matches!(weekday, Weekday::Sat | Weekday::Sun);
-                        
-                        // For Fridays, check if it's a working Friday
                         let is_working_friday = if weekday == Weekday::Fri {
-                            let first_friday_date = (7 - (first_day.weekday().num_days_from_monday() as i32 - 4)).rem_euclid(7) + 1;
+                            let first_friday_date = (7
+                                - (first_day.weekday().num_days_from_monday() as i32 - 4))
+                                .rem_euclid(7) + 1;
                             let friday_number = (day - first_friday_date as u32) / 14 + 1;
                             friday_number % 2 != 0
                         } else {
                             false
                         };
-
                         let day_class = match (is_today, day_data.is_some(), is_weekend, weekday) {
                             (true, true, _, _) => "day today has-hours",
                             (true, false, _, _) => "day today",
                             (_, true, true, _) => "day has-hours weekend",
                             (_, false, true, _) => "day weekend",
-                            (_, true, false, Weekday::Fri) if !is_working_friday => "day has-hours non-working-friday",
-                            (_, false, false, Weekday::Fri) if !is_working_friday => "day non-working-friday",
+                            (_, true, false, Weekday::Fri) if !is_working_friday => {
+                                "day has-hours non-working-friday"
+                            }
+                            (_, false, false, Weekday::Fri) if !is_working_friday => {
+                                "day non-working-friday"
+                            }
                             (_, true, false, _) => "day has-hours workday",
                             (_, false, false, _) => "day workday",
                         };
                         let year = current_year;
                         let month = current_month;
                         view! {
+                            // For Fridays, check if it's a working Friday
+
                             <div
                                 class=day_class
                                 on:click=move |_| handle_day_click(year, month, day)
@@ -166,7 +171,7 @@ pub fn Calendar() -> impl IntoView {
                             .get(&(year, month, day))
                             .map(|data| data.hours)
                             .unwrap_or(0.0);
-                        let (input_hours, set_input_hours) = create_signal(current_hours);
+                        let (input_hours, set_input_hours) = signal(current_hours);
                         view! {
                             <div class="modal">
                                 <div class="modal-content">
