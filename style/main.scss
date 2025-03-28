@@ -142,18 +142,18 @@ main {
     }
 }
 
-.time-input-panel {
-  position: absolute; // Or relative to the calendar container if preferred
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-top: 1px solid #ccc;
-  padding: 1rem;
-  
-  // Initially hidden by sliding down
-  transform: translateY(100%);
-}
+/* .time-input-panel { */
+/*   position: absolute; // Or relative to the calendar container if preferred */
+/*   bottom: 0; */
+/*   left: 0; */
+/*   right: 0; */
+/*   background: #fff; */
+/*   border-top: 1px solid #ccc; */
+/*   padding: 1rem; */
+/*    */
+/*   // Initially hidden by sliding down */
+/*   transform: translateY(100%); */
+/* } */
 
 .working-friday-toggle {
     margin-top: 10px;

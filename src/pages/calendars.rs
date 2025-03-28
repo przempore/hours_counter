@@ -2,44 +2,119 @@ use chrono::prelude::*;
 use leptos::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
-struct DayData {
-    hours: f32,
-}
 
-fn get_days_in_month(year: i32, month: u32) -> u32 {
-    match month {
-        2 => {
-            if year % 4 == 0 {
-                29
-            } else {
-                28
-            }
-        }
-        4 | 6 | 9 | 11 => 30,
-        _ => 31,
+// Types module
+mod types {
+    use std::collections::HashMap;
+    #[derive(Clone, Debug)]
+    pub struct DayData {
+        pub hours: f32,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct CalendarState {
+        pub hours_data: HashMap<(i32, u32, u32), DayData>,
+        pub selected_date: Option<(i32, u32, u32)>,
+        pub show_modal: bool,
     }
 }
 
-fn create_datetime(year: i32, month: u32, day: u32) -> DateTime<Local> {
-    Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap()
+// Date utilities module
+mod date_utils {
+    use chrono::prelude::*;
+
+    pub fn get_days_in_month(year: i32, month: u32) -> u32 {
+        match month {
+            2 => {
+                if year % 4 == 0 {
+                    29
+                } else {
+                    28
+                }
+            }
+            4 | 6 | 9 | 11 => 30,
+            _ => 31,
+        }
+    }
+
+    pub fn create_datetime(year: i32, month: u32, day: u32) -> DateTime<Local> {
+        Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap()
+    }
+
+    pub fn get_month_name(month: u32) -> &'static str {
+        match month {
+            1 => "January",
+            2 => "February",
+            3 => "March",
+            4 => "April",
+            5 => "May",
+            6 => "June",
+            7 => "July",
+            8 => "August",
+            9 => "September",
+            10 => "October",
+            11 => "November",
+            12 => "December",
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn is_working_friday(day: u32, first_friday_date: i32) -> bool {
+        let friday_number = (day - first_friday_date as u32) / 14 + 1;
+        friday_number % 2 != 0
+    }
 }
 
-fn get_month_name(month: u32) -> &'static str {
-    match month {
-        1 => "January",
-        2 => "February",
-        3 => "March",
-        4 => "April",
-        5 => "May",
-        6 => "June",
-        7 => "July",
-        8 => "August",
-        9 => "September",
-        10 => "October",
-        11 => "November",
-        12 => "December",
-        _ => unreachable!(),
+use date_utils::*;
+use types::*;
+
+// Modal component
+#[component]
+fn HoursModal(
+    selected_date: ReadSignal<Option<(i32, u32, u32)>>,
+    hours_data: ReadSignal<HashMap<(i32, u32, u32), DayData>>,
+    show_modal: ReadSignal<bool>,
+    set_show_modal: WriteSignal<bool>,
+    on_save: fn(f32) -> (),
+) -> impl IntoView {
+    move || {
+        show_modal.get().then(|| {
+            let (year, month, day) = selected_date.get().unwrap();
+            let current_hours = hours_data
+                .get()
+                .get(&(year, month, day))
+                .map(|data| data.hours)
+                .unwrap_or(0.0);
+            let (input_hours, set_input_hours) = signal(current_hours);
+            
+            view! {
+                <div class="modal">
+                    <div class="modal-content">
+                        <h3>
+                            {format!("Enter hours for {} {}, {}", get_month_name(month), day, year)}
+                        </h3>
+                        <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="24"
+                            prop:value=input_hours
+                            on:input=move |ev| {
+                                if let Ok(hours) = event_target_value(&ev).parse::<f32>() {
+                                    set_input_hours.set(hours);
+                                }
+                            }
+                        />
+                        <div class="modal-buttons">
+                            <button on:click=move |_| {
+                                set_show_modal.set(false)
+                            }>"Cancel"</button>
+                            <button on:click=move |_| on_save(input_hours.get())>"Save"</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        })
     }
 }
 
@@ -49,10 +124,8 @@ pub fn Calendar() -> impl IntoView {
     let current_month = today.month();
     let current_year = today.year();
 
-    // State for storing hours data
+    // State management
     let (hours_data, set_hours_data) = signal(HashMap::<(i32, u32, u32), DayData>::new());
-
-    // State for modal
     let (selected_date, set_selected_date) = signal::<Option<(i32, u32, u32)>>(None);
     let (show_modal, set_show_modal) = signal(false);
 
@@ -212,34 +285,37 @@ pub fn Calendar() -> impl IntoView {
     }
 }
 
-fn calculate_working_hours(year: i32, month: u32) -> f32 {
-    let mut total_hours = 0.0;
-    let first_day = create_datetime(year, month, 1);
-    let days_in_month = get_days_in_month(year, month);
+// Working hours calculator module
+mod working_hours {
+    use super::*;
 
-    // Determine if first Friday of the month is a working Friday
-    // We'll consider odd-numbered Fridays as working days
-    let first_friday_date =
-        (7 - (first_day.weekday().num_days_from_monday() as i32 - 4)).rem_euclid(7) + 1;
+    pub fn calculate_working_hours(year: i32, month: u32) -> f32 {
+        let mut total_hours = 0.0;
+        let first_day = create_datetime(year, month, 1);
+        let days_in_month = get_days_in_month(year, month);
 
-    for day in 1..=days_in_month {
-        let current_day = create_datetime(year, month, day);
-        let weekday = current_day.weekday();
+        let first_friday_date =
+            (7 - (first_day.weekday().num_days_from_monday() as i32 - 4)).rem_euclid(7) + 1;
 
-        match weekday {
-            Weekday::Mon | Weekday::Tue | Weekday::Wed | Weekday::Thu => {
-                total_hours += 8.0;
-            }
-            Weekday::Fri => {
-                // Check if it's a working Friday (every other Friday)
-                let friday_number = (day - first_friday_date as u32) / 14 + 1;
-                if friday_number % 2 != 0 {
+        for day in 1..=days_in_month {
+            let current_day = create_datetime(year, month, day);
+            let weekday = current_day.weekday();
+
+            match weekday {
+                Weekday::Mon | Weekday::Tue | Weekday::Wed | Weekday::Thu => {
                     total_hours += 8.0;
                 }
+                Weekday::Fri => {
+                    if is_working_friday(day, first_friday_date) {
+                        total_hours += 8.0;
+                    }
+                }
+                _ => {} // Weekend days
             }
-            _ => {} // Weekend days
         }
-    }
 
-    total_hours
+        total_hours
+    }
 }
+
+use working_hours::calculate_working_hours;
