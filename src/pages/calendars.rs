@@ -1,167 +1,105 @@
+use crate::components::day_cell::DayCell; // Import the new component
+use crate::components::time_input_modal::TimeInputModal;
+use crate::models::calendar_state::{use_calendar_context, CalendarDate};
 use chrono::prelude::*;
 use leptos::prelude::*;
-use std::collections::HashMap;
 
 
-// Types module
-mod types {
-    use std::collections::HashMap;
-    #[derive(Clone, Debug)]
-    pub struct DayData {
-        pub hours: f32,
-    }
+// --- Utility Functions ---
 
-    #[derive(Clone, Debug)]
-    pub struct CalendarState {
-        pub hours_data: HashMap<(i32, u32, u32), DayData>,
-        pub selected_date: Option<(i32, u32, u32)>,
-        pub show_modal: bool,
-    }
-}
-
-// Date utilities module
-mod date_utils {
-    use chrono::prelude::*;
-
-    pub fn get_days_in_month(year: i32, month: u32) -> u32 {
-        match month {
-            2 => {
-                if year % 4 == 0 {
-                    29
-                } else {
-                    28
-                }
+// Can be moved to a shared utils module if used elsewhere
+fn get_days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        2 => {
+            if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+                29 // Leap year
+            } else {
+                28
             }
-            4 | 6 | 9 | 11 => 30,
-            _ => 31,
         }
-    }
-
-    pub fn create_datetime(year: i32, month: u32, day: u32) -> DateTime<Local> {
-        Local.with_ymd_and_hms(year, month, day, 0, 0, 0).unwrap()
-    }
-
-    pub fn get_month_name(month: u32) -> &'static str {
-        match month {
-            1 => "January",
-            2 => "February",
-            3 => "March",
-            4 => "April",
-            5 => "May",
-            6 => "June",
-            7 => "July",
-            8 => "August",
-            9 => "September",
-            10 => "October",
-            11 => "November",
-            12 => "December",
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn is_working_friday(day: u32, first_friday_date: i32) -> bool {
-        let friday_number = (day - first_friday_date as u32) / 14 + 1;
-        friday_number % 2 != 0
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
     }
 }
 
-use date_utils::*;
-use types::*;
-
-// Modal component
-#[component]
-fn HoursModal(
-    selected_date: ReadSignal<Option<(i32, u32, u32)>>,
-    hours_data: ReadSignal<HashMap<(i32, u32, u32), DayData>>,
-    show_modal: ReadSignal<bool>,
-    set_show_modal: WriteSignal<bool>,
-    on_save: fn(f32) -> (),
-) -> impl IntoView {
-    move || {
-        show_modal.get().then(|| {
-            let (year, month, day) = selected_date.get().unwrap();
-            let current_hours = hours_data
-                .get()
-                .get(&(year, month, day))
-                .map(|data| data.hours)
-                .unwrap_or(0.0);
-            let (input_hours, set_input_hours) = signal(current_hours);
-            
-            view! {
-                <div class="modal">
-                    <div class="modal-content">
-                        <h3>
-                            {format!("Enter hours for {} {}, {}", get_month_name(month), day, year)}
-                        </h3>
-                        <input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            max="24"
-                            prop:value=input_hours
-                            on:input=move |ev| {
-                                if let Ok(hours) = event_target_value(&ev).parse::<f32>() {
-                                    set_input_hours.set(hours);
-                                }
-                            }
-                        />
-                        <div class="modal-buttons">
-                            <button on:click=move |_| {
-                                set_show_modal.set(false)
-                            }>"Cancel"</button>
-                            <button on:click=move |_| on_save(input_hours.get())>"Save"</button>
-                        </div>
-                    </div>
-                </div>
-            }
-        })
+fn get_month_name(month: u32) -> &'static str {
+    match month {
+        1 => "January", 2 => "February", 3 => "March", 4 => "April", 5 => "May", 6 => "June",
+        7 => "July", 8 => "August", 9 => "September", 10 => "October", 11 => "November", 12 => "December",
+        _ => "Invalid Month",
     }
 }
+
+// Use .single() to return Option
+fn create_datetime(year: i32, month: u32, day: u32) -> Option<DateTime<Local>> {
+    Local.with_ymd_and_hms(year, month, day, 0, 0, 0).single()
+}
+
+
+
+// --- Calendar Component ---
 
 #[component]
 pub fn Calendar() -> impl IntoView {
-    let today: DateTime<Local> = Local::now();
-    let current_month = today.month();
-    let current_year = today.year();
+    // Get state from context
+    let state = use_calendar_context()
+        .expect("CalendarState must be provided in context");
 
-    // State management
-    let (hours_data, set_hours_data) = signal(HashMap::<(i32, u32, u32), DayData>::new());
-    let (selected_date, set_selected_date) = signal::<Option<(i32, u32, u32)>>(None);
-    let (show_modal, set_show_modal) = signal(false);
+    let today = Local::now();
+    let today_date: CalendarDate = (today.year(), today.month(), today.day());
 
-    // Handler for day clicks
-    let handle_day_click = move |year: i32, month: u32, day: u32| {
-        set_selected_date.set(Some((year, month, day)));
-        set_show_modal.set(true);
+    // Use signals derived from the state for rendering
+    let current_view_month = state.current_view_month();
+    let monthly_working_hours = state.calculate_monthly_working_hours();
+
+
+    // Derived signal for calendar grid data (year, month, days_in_month, offset)
+    let calendar_grid_data = Memo::new(move |_| {
+        let (current_year, current_month) = current_view_month.get();
+        let first_day_dt = create_datetime(current_year, current_month, 1)
+            .unwrap_or_else(|| Local::now()); // Fallback to now if date fails
+        let days_in_month = get_days_in_month(current_year, current_month);
+        let first_weekday_offset = first_day_dt.weekday().num_days_from_monday(); // 0 = Mon, 6 = Sun
+
+        (
+            current_year,
+            current_month,
+            days_in_month,
+            first_weekday_offset,
+        )
+    });
+
+    // Signal for the range of days to render in the <For/> component
+    let days_to_render = Memo::new(move |_| {
+        let (_, _, days_in_month, _) = calendar_grid_data.get();
+        1..=days_in_month
+    });
+
+
+    // Handler for day clicks - Now a simple closure
+    let handle_day_click = move |date: CalendarDate| {
+        state.select_date_and_show_modal(date);
     };
 
-    // Handler for saving hours
-    let save_hours = move |hours: f32| {
-        if let Some((year, month, day)) = selected_date.get() {
-            set_hours_data.update(|data| {
-                data.insert((year, month, day), DayData { hours });
-            });
-        }
-        set_show_modal.set(false);
-    };
-
-    // Get the first day of the month
-    let first_day = create_datetime(current_year, current_month, 1);
-    let days_in_month = get_days_in_month(current_year, current_month);
-
-    // Get the weekday of the first day (0 = Monday, 6 = Sunday)
-    let first_weekday = first_day.weekday().num_days_from_monday();
-
-    let month_name = get_month_name(current_month);
 
     view! {
         <div class="calendar">
-            <h2>{month_name} " " {current_year}</h2>
-            <div class="working-hours">
-                {"Working hours this month: "}
-                {calculate_working_hours(current_year, current_month)}
-            </div>
+             // Header section reacting to current_view_month changes
+             { move || {
+                  let (year, month) = current_view_month.get();
+                  view! {
+                     <h2>{ format!("{} {}", get_month_name(month), year) }</h2>
+                        <div class="working-hours">
+                            { format!("Target working hours this month: {:.1}", monthly_working_hours.get())}
+                        </div>
+                     // TODO: Add buttons here to change month/year
+                     // <button on:click=move |_| state.set_view_month(year, month - 1)>"Prev"</button>
+                     // <button on:click=move |_| state.set_view_month(year, month + 1)>"Next"</button>
+                  }
+             }}
+
             <div class="calendar-grid">
+                // Static Weekday Headers
                 <div class="weekday">"Mon"</div>
                 <div class="weekday">"Tue"</div>
                 <div class="weekday">"Wed"</div>
@@ -170,152 +108,48 @@ pub fn Calendar() -> impl IntoView {
                 <div class="weekday">"Sat"</div>
                 <div class="weekday">"Sun"</div>
 
-                // Empty cells for days before the first of the month
-                {(0..first_weekday)
-                    .map(|_| view! { <div class="day empty"></div> })
-                    .collect::<Vec<_>>()}
+                // Render empty cells before the first day
+                 { move || {
+                      let (_, _, _, first_weekday_offset) = calendar_grid_data.get();
+                      (0..first_weekday_offset)
+                          .map(|_| view! { <div class="day empty"></div> })
+                          .collect::<Vec<_>>()
+                 }}
 
-                // Days of the month
-                {(1..=days_in_month)
-                    .map(move |day| {
-                        let is_today = day == today.day();
-                        let day_data = hours_data
-                            .get()
-                            .get(&(current_year, current_month, day))
-                            .cloned();
-                        let current_date = create_datetime(current_year, current_month, day);
-                        let weekday = current_date.weekday();
-                        let is_weekend = matches!(weekday, Weekday::Sat | Weekday::Sun);
-                        let is_working_friday = if weekday == Weekday::Fri {
-                            let first_friday_date = (7
-                                - (first_day.weekday().num_days_from_monday() as i32 - 4))
-                                .rem_euclid(7) + 1;
-                            let friday_number = (day - first_friday_date as u32) / 14 + 1;
-                            friday_number % 2 != 0
-                        } else {
-                            false
-                        };
-                        let day_class = match (is_today, day_data.is_some(), is_weekend, weekday) {
-                            (true, true, _, _) => "day today has-hours",
-                            (true, false, _, _) => "day today",
-                            (_, true, true, _) => "day has-hours weekend",
-                            (_, false, true, _) => "day weekend",
-                            (_, true, false, Weekday::Fri) if !is_working_friday => {
-                                "day has-hours non-working-friday"
-                            }
-                            (_, false, false, Weekday::Fri) if !is_working_friday => {
-                                "day non-working-friday"
-                            }
-                            (_, true, false, _) => "day has-hours workday",
-                            (_, false, false, _) => "day workday",
-                        };
-                        let year = current_year;
-                        let month = current_month;
+                 // Use <For/> component to render the DayCell component
+                 <For
+                    each=days_to_render
+                    key=|day| *day
+                    // Children closure now calculates props for DayCell
+                    children=move |day: u32| {
+                        // Get year and month reactively inside the children closure
+                        let (year, month, _, _) = calendar_grid_data.get();
+                        let date = (year, month, day);
+
+                        // Calculate props here instead of inside DayCell
+                        // Note: Accessing signals here might still contribute to complexity,
+                        // but perhaps less than passing the whole state down.
+                        let day_data = state.get_day_data_for_date(date).get(); // Get Option<DayData> directly
+                        let is_expected_working_friday = state.is_date_an_alternating_working_friday(date);
+
                         view! {
-                            // For Fridays, check if it's a working Friday
-
-                            <div
-                                class=day_class
-                                on:click=move |_| handle_day_click(year, month, day)
-                            >
-                                <span class="day-number">{day}</span>
-                                {day_data
-                                    .map(|data| {
-                                        view! {
-                                            <span class="hours-label">
-                                                {format!("{:.1}h", data.hours)}
-                                            </span>
-                                        }
-                                    })}
-                            </div>
+                             <DayCell
+                                date=date
+                                today_date=today_date
+                                // Pass calculated props
+                                day_data=day_data
+                                is_expected_working_friday=is_expected_working_friday
+                                // Pass closure
+                                on_click=handle_day_click.clone()
+                            />
                         }
-                    })
-                    .collect::<Vec<_>>()}
+                    }
+                />
             </div>
 
-            // Hours Input Modal
-            {move || {
-                show_modal
-                    .get()
-                    .then(|| {
-                        let (year, month, day) = selected_date.get().unwrap();
-                        let current_hours = hours_data
-                            .get()
-                            .get(&(year, month, day))
-                            .map(|data| data.hours)
-                            .unwrap_or(0.0);
-                        let (input_hours, set_input_hours) = signal(current_hours);
-                        view! {
-                            <div class="modal">
-                                <div class="modal-content">
-                                    <h3>
-                                        {format!(
-                                            "Enter hours for {} {}, {}",
-                                            get_month_name(month),
-                                            day,
-                                            year,
-                                        )}
-                                    </h3>
-                                    <input
-                                        type="number"
-                                        step="0.5"
-                                        min="0"
-                                        max="24"
-                                        prop:value=input_hours
-                                        on:input=move |ev| {
-                                            if let Ok(hours) = event_target_value(&ev).parse::<f32>() {
-                                                set_input_hours.set(hours);
-                                            }
-                                        }
-                                    />
-                                    <div class="modal-buttons">
-                                        <button on:click=move |_| {
-                                            set_show_modal.set(false)
-                                        }>"Cancel"</button>
-                                        <button on:click=move |_| save_hours(
-                                            input_hours.get(),
-                                        )>"Save"</button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    })
-            }}
+            // Render the modal component conditionally via its internal logic
+             <TimeInputModal />
         </div>
     }
 }
 
-// Working hours calculator module
-mod working_hours {
-    use super::*;
-
-    pub fn calculate_working_hours(year: i32, month: u32) -> f32 {
-        let mut total_hours = 0.0;
-        let first_day = create_datetime(year, month, 1);
-        let days_in_month = get_days_in_month(year, month);
-
-        let first_friday_date =
-            (7 - (first_day.weekday().num_days_from_monday() as i32 - 4)).rem_euclid(7) + 1;
-
-        for day in 1..=days_in_month {
-            let current_day = create_datetime(year, month, day);
-            let weekday = current_day.weekday();
-
-            match weekday {
-                Weekday::Mon | Weekday::Tue | Weekday::Wed | Weekday::Thu => {
-                    total_hours += 8.0;
-                }
-                Weekday::Fri => {
-                    if is_working_friday(day, first_friday_date) {
-                        total_hours += 8.0;
-                    }
-                }
-                _ => {} // Weekend days
-            }
-        }
-
-        total_hours
-    }
-}
-
-use working_hours::calculate_working_hours;

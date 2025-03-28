@@ -5,10 +5,17 @@ use leptos_router::{
     StaticSegment,
 };
 
-use crate::pages::home;
+use crate::{
+    models::calendar_state::provide_calendar_context, // Import the provider
+    pages::home::HomePage,                             // Import HomePage
+};
+use chrono::prelude::*; // Import chrono
 
+
+// Shell component remains the same
 pub fn shell(options: LeptosOptions) -> impl IntoView {
-    view! {
+    provide_meta_context();
+     view! {
         <!DOCTYPE html>
         <html lang="en">
             <head>
@@ -17,33 +24,38 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <AutoReload options=options.clone() />
                 <HydrationScripts options/>
                 <MetaTags/>
+                // Link to your CSS file
+                 <Stylesheet id="leptos" href="/pkg/hours_counter.css"/>
+                // Favicon links (example)
+                // <link rel="shortcut icon" type="image/ico" href="/favicon.ico"/>
+                // <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
+                // <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
+
+                 <Title text="Hours Counter"/> // Set the title
             </head>
             <body>
+                 // Render the main App component here
                 <App/>
             </body>
         </html>
     }
 }
 
+
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
+    let now = Local::now();
+    provide_calendar_context(now.year(), now.month());
+
     view! {
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/hours_counter.css"/>
-        <meta name="color-scheme" content="dark"/>
-
-        // sets the document title
-        <Title text="Welcome to Leptos"/>
-
-        // content for this welcome page
+        <MetaTags/>
+        <Title text="Hours Counter"/>
         <Router>
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=StaticSegment("") view=home::HomePage/>
+                    <Route path=StaticSegment("") view=HomePage/>
                 </Routes>
             </main>
         </Router>
