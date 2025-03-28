@@ -1,11 +1,9 @@
-use crate::components::day_cell::DayCell; // Import the new component
+use crate::components::day_cell::DayCell;
 use crate::components::time_input_modal::TimeInputModal;
 use crate::models::calendar_state::{use_calendar_context, CalendarDate};
 use chrono::prelude::*;
 use leptos::prelude::*;
 
-
-// --- Utility Functions ---
 
 // Can be moved to a shared utils module if used elsewhere
 fn get_days_in_month(year: i32, month: u32) -> u32 {

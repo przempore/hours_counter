@@ -142,18 +142,97 @@ main {
     }
 }
 
-/* .time-input-panel { */
-/*   position: absolute; // Or relative to the calendar container if preferred */
-/*   bottom: 0; */
-/*   left: 0; */
-/*   right: 0; */
-/*   background: #fff; */
-/*   border-top: 1px solid #ccc; */
-/*   padding: 1rem; */
-/*    */
-/*   // Initially hidden by sliding down */
-/*   transform: translateY(100%); */
-/* } */
+.calendar-grid {
+    position: relative; // Add this to contain absolute positioned elements
+}
+
+.day {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease, z-index 0s;
+
+    &.selected {
+        z-index: 2;
+        transform: scale(1.05);
+    }
+}
+
+.time-input-panel {
+    position: absolute;
+    background: #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    z-index: 1;
+    transition: all 0.3s ease;
+    
+    // Default state (hidden)
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+
+    &.active {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .panel-content {
+        min-width: 250px;
+    }
+
+    h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+
+    .time-inputs {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+
+        div {
+            flex: 1;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            background: #3d3d3d;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: white;
+            
+            &:focus {
+                outline: none;
+                border-color: #007bff;
+            }
+        }
+    }
+
+    .panel-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #4d4d4d;
+            color: white;
+
+            &:last-child {
+                background: #007bff;
+            }
+
+            &:hover {
+                opacity: 0.9;
+            }
+        }
+    }
+}
 
 .working-friday-toggle {
     margin-top: 10px;

@@ -40,7 +40,7 @@ pub struct CalendarState {
     // Private signals
     hours_data: RwSignal<HashMap<CalendarDate, DayData>>,
     working_fridays: RwSignal<HashSet<CalendarDate>>,
-    selected_date: RwSignal<Option<CalendarDate>>,
+    pub selected_date: RwSignal<Option<CalendarDate>>,
     show_modal: RwSignal<bool>,
     // Store the date of the first Friday of the currently viewed month
     // This is used to determine which Fridays are "working Fridays" (assumed alternating)
