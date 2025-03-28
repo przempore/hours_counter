@@ -5,17 +5,12 @@ use leptos_router::{
     StaticSegment,
 };
 
-use crate::{
-    models::calendar_state::provide_calendar_context, // Import the provider
-    pages::home::HomePage,                             // Import HomePage
-};
-use chrono::prelude::*; // Import chrono
-
+use crate::pages::home::HomePage;
 
 // Shell component remains the same
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     provide_meta_context();
-     view! {
+    view! {
         <!DOCTYPE html>
         <html lang="en">
             <head>
@@ -41,13 +36,9 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
-
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
-
-    let now = Local::now();
-    provide_calendar_context(now.year(), now.month());
 
     view! {
         <MetaTags/>

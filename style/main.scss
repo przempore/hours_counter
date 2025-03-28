@@ -87,6 +87,20 @@ main {
     &.non-working-friday {
         background-color: #3d3d45;
     }
+
+    &.previous-month {
+        background-color: #2d2d2d;
+        color: #666;
+        cursor: default;
+
+        &:hover {
+            background-color: #2d2d2d;
+        }
+
+        .hours-label {
+            color: #555;
+        }
+    }
 }
 
 .hours-label {

@@ -10,9 +10,8 @@ use log::Level; // Import Level from the log crate
 
 // Import modules
 pub mod app;
-pub mod components;
-pub mod models;
 pub mod pages;
+pub mod utils;
 
 
 #[cfg(feature = "hydrate")]
