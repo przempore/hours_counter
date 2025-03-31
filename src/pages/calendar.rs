@@ -30,7 +30,7 @@ pub fn Calendar() -> impl IntoView {
                         if Calendar::is_weekend(today.year(), today.month(), day) {
                             class_list.push_str(" weekend");
                         }
-                        view! { <div class="day">{day.to_string()}</div> }
+                        view! { <div class=class_list>{day.to_string()}</div> }
                     })
                     .collect::<Vec<_>>();
 
