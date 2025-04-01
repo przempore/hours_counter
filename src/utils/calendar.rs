@@ -14,7 +14,9 @@ impl Calendar {
 
     pub fn today() -> Self {
         Self {
-            date: OffsetDateTime::now_utc().date(),
+            date: OffsetDateTime::now_local()
+                .expect("correct local time")
+                .date(),
         }
     }
 
@@ -28,6 +30,10 @@ impl Calendar {
             Weekday::Saturday.to_string(),
             Weekday::Sunday.to_string(),
         ]
+    }
+
+    pub fn day(&self) -> u8 {
+        self.date.day()
     }
 
     pub fn month(&self) -> Month {
@@ -51,8 +57,10 @@ impl Calendar {
     }
 
     pub fn last_visible_days(&self, date: &Self) -> (u8, u8) {
-        let first_visible =
-            self.date.month().length(self.date.year()) - date.weekday().number_from_monday() + 2;
+        let current_month = Self::from(date.year(), date.month(), 1);
+        let first_visible = self.date.month().length(self.date.year())
+            - current_month.weekday().number_from_monday()
+            + 2;
 
         (first_visible, self.month().length(self.year()))
     }
