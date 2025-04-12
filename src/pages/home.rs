@@ -5,6 +5,6 @@ use crate::pages::calendar::Calendar;
 pub fn HomePage() -> impl IntoView {
     view! {
         <h1>"Hours Counter"</h1>
-        <Calendar/>
+        <Calendar />
     }
 }

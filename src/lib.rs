@@ -1,5 +1,3 @@
-#![recursion_limit = "2048"] // <-- Add this line at the top
-
 #[cfg(feature = "hydrate")]
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(feature = "hydrate")]

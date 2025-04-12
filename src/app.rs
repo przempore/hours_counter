@@ -7,30 +7,19 @@ use leptos_router::{
 
 use crate::pages::home::HomePage;
 
-// Shell component remains the same
 pub fn shell(options: LeptosOptions) -> impl IntoView {
-    provide_meta_context();
     view! {
-        <!DOCTYPE html>
+        <!DOCTYPE html> 
         <html lang="en">
             <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <AutoReload options=options.clone() />
-                <HydrationScripts options/>
-                <MetaTags/>
-                // Link to your CSS file
-                 <Stylesheet id="leptos" href="/pkg/hours_counter.css"/>
-                // Favicon links (example)
-                // <link rel="shortcut icon" type="image/ico" href="/favicon.ico"/>
-                // <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
-                // <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
-
-                 <Title text="Hours Counter"/> // Set the title
+                <HydrationScripts options />
+                <MetaTags />
             </head>
             <body>
-                 // Render the main App component here
-                <App/>
+                <App />
             </body>
         </html>
     }
@@ -38,17 +27,35 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
     view! {
-        <MetaTags/>
-        <Title text="Hours Counter"/>
+        <Stylesheet id="leptos" href="/pkg/hours_counter.css" />
+
+        // sets the document title
+        <Title text="Welcome to Leptos" />
+
+        // content for this welcome page
         <Router>
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=StaticSegment("") view=HomePage/>
+                    <Route path=StaticSegment("") view=HomePage />
                 </Routes>
             </main>
         </Router>
+    }
+}
+
+/// Renders the home page of your application.
+#[component]
+fn ThisHomePage() -> impl IntoView {
+    // Creates a reactive value to update the button
+    let count = RwSignal::new(0);
+    let on_click = move |_| *count.write() += 1;
+
+    view! {
+        <h1>"Welcome to Leptos!"</h1>
+        <button on:click=on_click>"Click Me: " {count}</button>
     }
 }
