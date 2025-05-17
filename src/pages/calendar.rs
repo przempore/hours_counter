@@ -1,6 +1,23 @@
+// WiP on Gemini suggestion -> https://gemini.google.com/share/eb5573aeb17b
+
+#[cfg(feature = "ssr")]
+use time::{Date, Month, OffsetDateTime, Weekday, Duration};
+use leptos::prelude::*;
+use leptos::server_fn::error::ServerFnError;
+
+#[server(GetCalendarData, "/api")]
+pub async fn get_calendar_data(year: Option<i32>, month: Option<u8>) -> Result<CalendarData, ServerFnError> {
+    #[cfg(feature = "ssr")]
+    {
+        use crate::utils::calendar::Calendar as TimeCalendar;
+
+        let today = OffsetDateTime::now_local().map_err(|e| ServerFnError::ServerError(e.to_string()))?.date();
+    }
+}
+
 use crate::utils::calendar::Calendar;
 use leptos::prelude::*;
-use time::Month;
+use time::{Month, OffsetDateTime};
 use leptos::logging::log;
 
 #[component]

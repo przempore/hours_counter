@@ -21,6 +21,8 @@ console_log = "1.0.0"
 time = { version = "0.3.41", features = ["local-offset"] }
 
 [features]
+# default = ["ssr"] # <- making "ssr" a default feature lsp will treat "ssr" code blocks as a live code
+
 hydrate = [
     "leptos/hydrate",
     "dep:console_error_panic_hook",
