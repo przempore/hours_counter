@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PortialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct DayData {
     pub day: u8,
     pub is_current_month: bool,
@@ -8,9 +8,9 @@ pub struct DayData {
     pub is_weekend: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PortialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CalendarData {
-    pub yeaor: i32,
+    pub year: i32,
     pub month: u8,
     pub month_name: String,
     pub days: Vec<DayData>,
